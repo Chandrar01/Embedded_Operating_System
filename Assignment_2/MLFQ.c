@@ -14,14 +14,25 @@
 *************************************************************************************************/
 
 #define WORKLOAD1 100000
-#define WORKLOAD2 50000
-#define WORKLOAD3 25000
-#define WORKLOAD4 10000
+#define WORKLOAD2 100000
+#define WORKLOAD3 100000
+#define WORKLOAD4 100000
 
-#define QUANTUM1 1000
-#define QUANTUM2 1000
-#define QUANTUM3 1000
-#define QUANTUM4 1000
+#define QUANTUM1 1000000
+#define QUANTUM2 1000000
+#define QUANTUM3 1000000
+#define QUANTUM4 1000000
+
+#define ITTERATION 10
+#define BILLION  1000000000L;
+
+double time_difference(struct timespec start_time, struct timespec end_time)
+{
+   
+    double diff;
+    diff = end_time.tv_sec - start_time.tv_sec + (double)( end_time.tv_nsec - start_time.tv_nsec ) / (double)BILLION;
+    return diff;
+}
 
 /************************************************************************************************ 
                     DO NOT CHANGE THE FUNCTION IMPLEMENTATION
@@ -48,109 +59,332 @@ void myfunction(int param){
 }
 /************************************************************************************************/
 
+typedef struct 
+{
+    int task_queue[4];
+    int num_tasks_in_queue;
+
+}fcfs_q;
+
 int main(int argc, char const *argv[])
 {
     pid_t pid1, pid2, pid3, pid4;
     int running1, running2, running3, running4;
 
-    time_t t_start,t_end;
+    // start time and end time of a task
+    struct timespec t_start[4],t_end[4];
 
-    pid1 = fork();
+    // wait time and execution time of a task
+    double t_wait[4], t_exec[4] = {0};;
 
-    if (pid1 == 0){
+    // execution/run time of a task
+    struct timespec t_exec_start[4], t_exec_end[4]; 
 
-        myfunction(WORKLOAD1);
+    double  sum_avg_t_wait = 0;
+    double avg_t_wait[ITTERATION] = {0};
 
-        exit(0);
-    }
-    kill(pid1, SIGSTOP);
+    fcfs_q queue;
 
-    pid2 = fork();
+   
 
-    if (pid2 == 0){
+    for(int iter = 1 ; iter <= ITTERATION; iter++)
+    {   
 
-        myfunction(WORKLOAD2);
+        for(int t = 0; t<4; t++)
+            t_exec[t] = 0;
 
-        exit(0);
-    }
-    kill(pid2, SIGSTOP);
+        for(int t = 0; t<4; t++)
+            t_wait[t] = 0;
 
-    pid3 = fork();
+        for(int t=0; t<4; t++)
+        {
+            queue.task_queue[t] = 0;
+        }
+        queue.num_tasks_in_queue = 0;
 
-    if (pid3 == 0){
+        pid1 = fork();
 
-        myfunction(WORKLOAD3);
+        if (pid1 == 0){ 
 
-        exit(0);
-    }
-    kill(pid3, SIGSTOP);
+            myfunction(WORKLOAD1);
 
-    pid4 = fork();
+            exit(0);
+        }
+        kill(pid1, SIGSTOP);
 
-    if (pid4 == 0){
+        pid2 = fork();
 
-        myfunction(WORKLOAD4);
+        if (pid2 == 0){
 
-        exit(0);
-    }
-    kill(pid4, SIGSTOP);
+            myfunction(WORKLOAD2);
 
-    /************************************************************************************************ 
-        At this point, all  newly-created child processes are stopped, and ready for scheduling.
-    *************************************************************************************************/
+            exit(0);
+        }
+        kill(pid2, SIGSTOP);
+
+        pid3 = fork();
+
+        if (pid3 == 0){
+
+            myfunction(WORKLOAD3);
+
+            exit(0);
+        }
+        kill(pid3, SIGSTOP);
+
+        pid4 = fork();
+
+        if (pid4 == 0){
+
+            myfunction(WORKLOAD4);
+
+            exit(0);
+        }
+        kill(pid4, SIGSTOP);
+
+        /************************************************************************************************ 
+            At this point, all  newly-created child processes are stopped, and ready for scheduling.
+        *************************************************************************************************/
 
 
 
-    /************************************************************************************************
-        - Scheduling code starts here
-        - Below is a sample schedule. (which scheduling algorithm is this?)
-        - For the assignment purposes, you have to replace this part with the other scheduling methods 
-        to be implemented.
-    ************************************************************************************************/
+        /************************************************************************************************
+            - Scheduling code starts here
+            - Below is a sample schedule. (which scheduling algorithm is this?)
+            - For the assignment purposes, you have to replace this part with the other scheduling methods 
+            to be implemented.
+        ************************************************************************************************/
 
-    running1 = 1;
-    running2 = 1;
-    running3 = 1;
-    running4 = 1;
+        running1 = 1;
+        running2 = 1;
+        running3 = 1;
+        running4 = 1;
 
-    t_start = time(NULL);
+        for(int t = 0; t<4; t++)
+            clock_gettime( CLOCK_REALTIME, &t_start[t]);
 
-    while (running1 > 0 || running2 > 0 || running3 > 0 || running4 > 0)
-    {
+        // Q1 with Quantum defined 
+   
         if (running1 > 0){
+            clock_gettime( CLOCK_REALTIME, &t_exec_start[0]);
+
             kill(pid1, SIGCONT);
             usleep(QUANTUM1);
             kill(pid1, SIGSTOP);
+            waitpid(pid1, &running1, WNOHANG);
+
+            clock_gettime( CLOCK_REALTIME, &t_exec_end[0]);
+            t_exec[0] = t_exec[0] +  time_difference(t_exec_start[0], t_exec_end[0]);
+
+            if (running1 == 0)
+            {    
+                    //printf("exec time of p1-q1 = %0.6f \n", t_exec[0]);
+                    t_wait[0] = time_difference(t_start[0], t_exec_end[0]) - t_exec[0];
+                    //printf("wait time of p1-q1 = %0.6f \n",t_wait[0]);
+            }  
+            else
+            {
+                queue.task_queue[queue.num_tasks_in_queue]=1; 
+                queue.num_tasks_in_queue++;
+            }
+
+                
         }
         if (running2 > 0){
+            clock_gettime( CLOCK_REALTIME, &t_exec_start[1]);
+                
             kill(pid2, SIGCONT);
             usleep(QUANTUM2);
             kill(pid2, SIGSTOP);
+
+            clock_gettime( CLOCK_REALTIME, &t_exec_end[1]);
+
+            t_exec[1] = t_exec[1] +  time_difference(t_exec_start[1], t_exec_end[1]);
+                
+            //printf("exec time of p2 = %0.6f \n", t_exec[1]);
+            waitpid(pid2, &running2, WNOHANG);
+
+            if (running2 == 0)
+            {    
+                //printf("exec time of p2-q1 = %0.6f \n", t_exec[1]);
+                t_wait[1] = time_difference(t_start[1], t_exec_end[1]) - t_exec[1];
+                //printf("wait time of p2-q1 = %0.6f \n",t_wait[1]);
+            }  
+            else
+            {
+                queue.task_queue[queue.num_tasks_in_queue]=2; 
+                queue.num_tasks_in_queue++;
+            }
+               
         }
         if (running3 > 0){
+            clock_gettime( CLOCK_REALTIME, &t_exec_start[2]);
+
             kill(pid3, SIGCONT);
             usleep(QUANTUM3);
             kill(pid3, SIGSTOP);
+            
+            clock_gettime( CLOCK_REALTIME, &t_exec_end[2]);
+
+            t_exec[2] = t_exec[2] +  time_difference(t_exec_start[2], t_exec_end[2]);
+
+            //printf("exec time of p3 = %0.6f \n", t_exec[2]);
+            waitpid(pid3, &running3, WNOHANG);
+
+            if (running3 == 0)
+            {
+                
+                //printf("exec time of p3-q1 = %0.6f \n", t_exec[2]);
+                t_wait[2] = time_difference(t_start[2], t_exec_end[2]) - t_exec[2];
+                //printf("wait time of p3-q1 = %0.6f \n",t_wait[2]);
+            }
+            else
+            {
+                queue.task_queue[queue.num_tasks_in_queue]=3; 
+                queue.num_tasks_in_queue++;
+            }
+                
         }
         if (running4 > 0){
+            clock_gettime( CLOCK_REALTIME, &t_exec_start[3]);
+
             kill(pid4, SIGCONT);
             usleep(QUANTUM4);
             kill(pid4, SIGSTOP);
+
+            clock_gettime( CLOCK_REALTIME, &t_exec_end[3]);
+
+            t_exec[3] = t_exec[3] +  time_difference(t_exec_start[3], t_exec_end[3]);
+
+            //printf("exec time of p3 = %0.6f \n", t_exec[3]);
+            waitpid(pid4, &running4, WNOHANG);
+            if (running4 == 0)
+            {
+                
+                //printf("exec time of p4-q1 = %0.6f \n", t_exec[3]);
+                t_wait[3] = time_difference(t_start[3], t_exec_end[3]) - t_exec[3];
+                //printf("wait time of p4-q1 = %0.6f \n",t_wait[3]);
+            }  
+            else
+            {
+                queue.task_queue[queue.num_tasks_in_queue]=4; 
+                queue.num_tasks_in_queue++;
+            }
+                
+
         }
-        waitpid(pid1, &running1, WNOHANG);
-        waitpid(pid2, &running2, WNOHANG);
-        waitpid(pid3, &running3, WNOHANG);
-        waitpid(pid4, &running4, WNOHANG);
+
+        printf("number of tasks in queue 2 = %d \n\n",queue.num_tasks_in_queue);
+
+        for(int q=0; q<=queue.num_tasks_in_queue; q++)
+        {
+
+            if(queue.task_queue[q]!=0)
+            {
+                switch(queue.task_queue[q])
+                {
+
+                    case 1:
+                            // run Q2 as FCFS
+                            if (running1 > 0){
+                                clock_gettime( CLOCK_REALTIME, &t_exec_start[0]);
+                                kill(pid1, SIGCONT);
+                                waitpid(pid1 , &running1, 0);
+
+                                clock_gettime( CLOCK_REALTIME, &t_exec_end[0]);
+                                t_exec[0] = t_exec[0] +  time_difference(t_exec_start[0], t_exec_end[0]);
+
+                                //printf("exec time of p1-q2 = %0.6f \n", t_exec[0]);
+                                t_wait[0] = time_difference(t_start[0], t_exec_end[0]) - t_exec[0];
+                                //printf("wait time of p1-q2 = %0.6f \n",t_wait[0]);
+                            }
+
+                        break;
+
+                    case 2: 
+                            // run W2
+                            if (running2 > 0){
+                                clock_gettime( CLOCK_REALTIME, &t_exec_start[1]);
+
+                                
+                                kill(pid2, SIGCONT);
+                                waitpid(pid2 , &running2, 0);
+                                clock_gettime( CLOCK_REALTIME, &t_exec_end[1]);
+
+                                t_exec[1] = t_exec[1] +  time_difference(t_exec_start[1], t_exec_end[1]);
+
+                                //printf("exec time of p2-q2 = %0.6f \n", t_exec[1]);
+                                t_wait[1] = time_difference(t_start[1], t_exec_end[1]) - t_exec[1];
+                                //printf("wait time of p2-q2 = %0.6f \n",t_wait[1]);
+                            }
+
+
+                        break;
+
+                    case 3: 
+                            // run W3
+                            if (running3 > 0){
+                                clock_gettime( CLOCK_REALTIME, &t_exec_start[2]);
+                                
+                                kill(pid3, SIGCONT);
+                                waitpid(pid3 , &running3, 0);
+                                clock_gettime( CLOCK_REALTIME, &t_exec_end[2]);
+
+                                t_exec[2] = t_exec[2] +  time_difference(t_exec_start[2], t_exec_end[2]);
+
+                               
+                                //printf("exec time of p3-q2 = %0.6f \n", t_exec[2]);
+                                t_wait[2] = time_difference(t_start[2], t_exec_end[2]) - t_exec[2];
+                                //printf("wait time of p3-q2 = %0.6f \n",t_wait[2]);
+                            }
+                        break;
+
+                    case 4:
+                        // run W4
+                        if (running4 > 0){
+                            clock_gettime( CLOCK_REALTIME, &t_exec_start[3]);
+                            
+                            kill(pid4, SIGCONT);
+                            waitpid(pid4 , &running4, 0);
+                            clock_gettime( CLOCK_REALTIME, &t_exec_end[3]);
+
+                            t_exec[3] = t_exec[3] +  time_difference(t_exec_start[3], t_exec_end[3]);
+
+                            //printf("exec time of p4-q2 = %0.6f \n", t_exec[3]);
+                            t_wait[3] = time_difference(t_start[3], t_exec_end[3]) - t_exec[3];
+                            //printf("wait time of p4-q2 = %0.6f \n",t_wait[3]);
+
+                        }
+                        break;
+
+                    default:
+                        break;
+                }
+
+            }
+        }
+
+   
+       for(int t = 0; t<4; t++)
+       clock_gettime( CLOCK_REALTIME, &t_end[t]);
+
+        /************************************************************************************************
+            - Scheduling code ends here
+        ************************************************************************************************/
+
+        avg_t_wait[iter] = ((double)(t_wait[0]+t_wait[1]+t_wait[2]+t_wait[3])/4.0);
+
+        sum_avg_t_wait = sum_avg_t_wait + avg_t_wait[iter];
+
+        //printf("T: iteration %d : Average wait Time taken to finish all the tasks is %f seconds \n", iter,
+        //   ((double)(t_wait[0]+t_wait[1]+t_wait[2]+t_wait[3])/4.0));
+
+
     }
 
-    t_end = time(NULL);
+    double mean_of_avg_t_wait = (double)(sum_avg_t_wait/ITTERATION);
 
-    /************************************************************************************************
-        - Scheduling code ends here
-    ************************************************************************************************/
-
-    printf("T: Time taken to finish all the tasks is %0.2f seconds",
-           difftime(t_end,t_start));
+     printf("T: Total iterations %d : mean wait Time taken to finish all the tasks is %f seconds \n", ITTERATION, mean_of_avg_t_wait);
 
     return 0;
 }
