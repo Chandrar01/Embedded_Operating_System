@@ -84,7 +84,11 @@ def rm_scheduling(wcet, deadlines, max_time, idle_power, active_power):
 def main():
     # open input file
     file = open("./input2.txt", "r")
-
+    output = ""
+    total_energy_consumed = ""
+    total_idle_time = ""
+    total_exe_time = ""
+    is_feasible = False
     # read line from input file
     # Note that input file is space delimited
     parameters_matrix = []
@@ -163,14 +167,15 @@ def main():
     print(get_utilization(task_wcet_f4, task_deadlines))
 
     if get_utilization(task_wcet_list[index], task_deadlines) < 0.745:
-
+        is_feasible = True
         output, total_energy_consumed, total_idle_time, total_exe_time = rm_scheduling(task_wcet_list[index],
                                                                                        task_deadlines,
                                                                                        max_hyper_time,
                                                                                        idle_power,
                                                                                        active_power_f1)
 
-        file = open("output.txt", "w")
+    file = open("RM_output.txt", "w")
+    if is_feasible:
         for row in output:
             for i in range(len(row)):
                 row[i] = str(row[i])
@@ -179,6 +184,9 @@ def main():
         file.write(total_energy_consumed + '\n')
         file.write(total_idle_time + '\n')
         file.write(total_exe_time)
+        file.close()
+    else:
+        file.write("No Feasible Schedule is Found")
         file.close()
 
 

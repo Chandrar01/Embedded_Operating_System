@@ -164,7 +164,7 @@ def main():
                                                                                         active_power_f1,
                                                                                         frequency[index])
 
-    file = open("output.txt", "w")
+    file = open("EE_output.txt", "w")
     for row in output:
         for i in range(len(row)):
             row[i] = str(row[i])

@@ -1,5 +1,3 @@
-import heapq
-
 # These constants are used to describe the input data format
 # Specifying what each column is holding information about
 
@@ -89,7 +87,11 @@ def edf_scheduling(wcet, deadlines, max_time, idle_power, active_power, freq_val
 def main():
     # open input file
     file = open("./input2.txt", "r")
-
+    output = ""
+    total_energy_consumed = ""
+    total_idle_time = ""
+    total_exe_time = ""
+    is_feasible = False
     # read line from input file
     # Note that input file is space delimited
     parameters_matrix = []
@@ -186,10 +188,9 @@ def main():
         w5_f_energy[i] = (task_wcet_list[i][4] * active_power_f[i])
 
     f_index_priority = find_frequency_priority(w1_f_energy)
-    f_index_priority_5 = find_frequency_priority(w5_f_energy)
 
     if get_utilization(task_wcet_list[f_index_priority[0]], task_deadlines) < 1.0:
-
+        is_feasible = True
         output, total_energy_consumed, total_idle_time, total_exe_time = edf_scheduling(
             task_wcet_list[f_index_priority[0]],
             task_deadlines,
@@ -199,6 +200,7 @@ def main():
             frequency[f_index_priority[0]])
 
     elif get_utilization(task_wcet_list[f_index_priority[1]], task_deadlines) < 1.0:
+        is_feasible = True
         output, total_energy_consumed, total_idle_time, total_exe_time = edf_scheduling(
             task_wcet_list[f_index_priority[1]],
             task_deadlines,
@@ -208,6 +210,7 @@ def main():
             frequency[f_index_priority[1]])
 
     elif get_utilization(task_wcet_list[f_index_priority[2]], task_deadlines) < 1.0:
+        is_feasible = True
         output, total_energy_consumed, total_idle_time, total_exe_time = edf_scheduling(
             task_wcet_list[f_index_priority[2]],
             task_deadlines,
@@ -217,6 +220,7 @@ def main():
             frequency[f_index_priority[2]])
 
     elif get_utilization(task_wcet_list[f_index_priority[3]], task_deadlines) < 1.0:
+        is_feasible = True
         output, total_energy_consumed, total_idle_time, total_exe_time = edf_scheduling(
             task_wcet_list[f_index_priority[3]],
             task_deadlines,
@@ -225,17 +229,20 @@ def main():
             active_power_f[f_index_priority[3]],
             frequency[f_index_priority[3]])
 
-    file = open("EE_output.txt", "w")
-    for row in output:
-        for i in range(len(row)):
-            row[i] = str(row[i])
-        file.write(" ".join(row) + '\n')
+    file = open("EE_EDF_output.txt", "w")
+    if is_feasible:
+        for row in output:
+            for i in range(len(row)):
+                row[i] = str(row[i])
+            file.write(" ".join(row) + '\n')
 
-    file.write(total_energy_consumed + '\n')
-    file.write(total_idle_time + '\n')
-    file.write(total_exe_time)
-    file.close()
-
+        file.write(total_energy_consumed + '\n')
+        file.write(total_idle_time + '\n')
+        file.write(total_exe_time)
+        file.close()
+    else:
+        file.write("No Feasible Schedule is Found")
+        file.close()
 
 if __name__ == "__main__":
     main()
