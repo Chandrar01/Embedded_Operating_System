@@ -16,6 +16,8 @@ WCET_AT_F4_COL = 5
 
 IDLE_POWER_COL = 6
 
+frequency = ['1188', '918', '648', '384']
+
 
 def get_utilization(wcet, deadlines):
     u = 0
@@ -36,7 +38,7 @@ def find_task_priority(period):
     return priority
 
 
-def rm_scheduling(wcet, deadlines, max_time, idle_power, active_power):
+def rm_scheduling(wcet, deadlines, max_time, idle_power, active_power, freq_value):
     output = []
 
     current_time = 0
@@ -45,6 +47,7 @@ def rm_scheduling(wcet, deadlines, max_time, idle_power, active_power):
 
     # list of upcoming task deadline
     task_period = deadlines.copy()
+    task_deadline = deadlines.copy()
     task_ready_list = [0, 0, 0, 0, 0]
     remaining_task = []
     priority_task = 0
@@ -64,7 +67,13 @@ def rm_scheduling(wcet, deadlines, max_time, idle_power, active_power):
             total_idle_time += idle_time
             energy_consumed = idle_power * idle_time / 1000
             total_energy_consumed += energy_consumed
-            output.append([start_time, 'W' + str(current_task + 1), 'IDLE', idle_time, str(energy_consumed) + 'J'])
+            output.append([start_time,
+                           'W' + str(current_task + 1),
+                           freq_value,
+                           'IDLE',
+                           idle_time,
+                           str(energy_consumed) + 'J',
+                           task_deadline[current_task]])
 
         else:
             start_time = current_time
@@ -72,8 +81,14 @@ def rm_scheduling(wcet, deadlines, max_time, idle_power, active_power):
             task_ready_list[current_task] += deadlines[current_task]
             energy_consumed = active_power * wcet[current_task] / 1000
             total_energy_consumed += energy_consumed
-            output.append([start_time, 'W' + str(current_task + 1), '1188', wcet[current_task], str(energy_consumed) + 'J'])
+            output.append([start_time,
+                           'W' + str(current_task + 1),
+                           freq_value,
+                           wcet[current_task],
+                           str(energy_consumed) + 'J',
+                           task_deadline[current_task]])
             priority_task += 1
+            task_deadline[current_task] += deadlines[current_task]
 
     return output, \
            ('Total Energy Consumed = ' + str(total_energy_consumed) + 'J'), \
@@ -172,7 +187,8 @@ def main():
                                                                                        task_deadlines,
                                                                                        max_hyper_time,
                                                                                        idle_power,
-                                                                                       active_power_f1)
+                                                                                       active_power_f1,
+                                                                                       frequency[index])
 
     file = open("RM_output.txt", "w")
     if is_feasible:

@@ -59,6 +59,7 @@ def rm_scheduling(wcet, deadlines, max_time, idle_power, active_power, freq_valu
 
     # list of upcoming task deadline
     task_period = deadlines.copy()
+    task_deadline = deadlines.copy()
     task_ready_list = [0, 0, 0, 0, 0]
     remaining_task = []
     priority_task = 0
@@ -78,7 +79,12 @@ def rm_scheduling(wcet, deadlines, max_time, idle_power, active_power, freq_valu
             total_idle_time += idle_time
             energy_consumed = idle_power * idle_time / 1000
             total_energy_consumed += energy_consumed
-            output.append([start_time, 'W' + str(current_task + 1), 'IDLE', idle_time, str(energy_consumed) + 'J'])
+            output.append([start_time,
+                           'W' + str(current_task + 1),
+                           'IDLE',
+                           idle_time,
+                           str(energy_consumed) + 'J',
+                           task_deadline[current_task]])
 
         else:
             start_time = current_time
@@ -86,9 +92,13 @@ def rm_scheduling(wcet, deadlines, max_time, idle_power, active_power, freq_valu
             task_ready_list[current_task] += deadlines[current_task]
             energy_consumed = active_power * wcet[current_task] / 1000
             total_energy_consumed += energy_consumed
-            output.append(
-                [start_time, 'W' + str(current_task + 1), freq_value, wcet[current_task], str(energy_consumed) + 'J'])
+            output.append([start_time,
+                           'W' + str(current_task + 1),
+                           freq_value, wcet[current_task],
+                           str(energy_consumed) + 'J',
+                          task_deadline[current_task]])
             priority_task += 1
+            task_deadline[current_task] += deadlines[current_task]
 
     return output, \
            ('Total Energy Consumed = ' + str(total_energy_consumed) + 'J'), \
